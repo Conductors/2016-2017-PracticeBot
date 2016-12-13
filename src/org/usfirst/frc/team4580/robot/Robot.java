@@ -20,7 +20,7 @@ public class Robot extends IterativeRobot {
 	RobotDrive myRobot;
 	Joystick stick;
 	int autoLoopCounter;
-    boolean joystickA;
+    	boolean joystickA;
 	boolean joystickB;
 	boolean joystickX;
 	boolean joystickY;
@@ -34,6 +34,8 @@ public class Robot extends IterativeRobot {
 	double joystickRSY;
 	double joyLeftOut;;
 	double joyRightOut;
+	boolean slowBool;
+	boolean interlock;
     /**
      * This function is run when the robot is first started up and should be
      * used for any initialization code.
@@ -47,6 +49,8 @@ public class Robot extends IterativeRobot {
     	camera = CameraServer.getInstance();
         camera.startAutomaticCapture("cam0");
     	camera.setQuality(100);
+	slowBool = false;
+	interlock = true;
     }
     
     /**
@@ -83,7 +87,8 @@ public class Robot extends IterativeRobot {
     	updateInput();
         //Displays input values to smart dashboard
     	smartDashboard();
-        driveBot();
+        //Uses refreshed input to drive robot
+	driveBot();
     }
     
     /**
@@ -93,12 +98,17 @@ public class Robot extends IterativeRobot {
     	LiveWindow.run();
     }
    public void driveBot() {
-	   // Sets tank drive equal to joystick values
-	   //May have to set to negatives, double check in dashboard
-	   joyLeftOut = joystickRSY;
-	   joyRightOut = joystickRSY;
-	   myRobot.tankDrive(joyLeftOut, joyRightOut, true);
-
+	if (slowBool) {
+		//If slowBool (activated by A) is true, then drive speed is halved
+		joyLeftOut = joystickLSY * .5;
+		joyRightOut = joystickRSY * .5;
+	}
+	else {
+		joyLeftOut = joystickLSY;
+		joyRightOut = joystickRSY;
+	}
+	// Sets tank drive equal to joystick variables
+	myRobot.tankDrive(joyLeftOut, joyRightOut, true);
    }
     public void updateInput() {
         //Refreshes values from joystick and later, sensors
@@ -114,9 +124,19 @@ public class Robot extends IterativeRobot {
     	joystickLSY = stick.getRawAxis(1);
     	joystickRSX = stick.getRawAxis(2);
     	joystickRSY = stick.getRawAxis(3);
+	//Must release button and repress to toggle slowBool, avoids rapid switching
+	if (joystickA && interlock) {
+		slowBool = !slowBool;
+		interlock = false;
+	}
+	//If button is not pressed, reset interlock
+	else if (!joystickA) {
+		interlock = true;
+	}
     }
     public void smartDashboard(){
-        SmartDashboard.putNumber("Left Stick", joystickLSY);
-		SmartDashboard.putNumber("Right Stick", joystickRSY);
+        //Puts stick values to Smart Dashboard
+	SmartDashboard.putNumber("Left Stick", joystickLSY);
+	SmartDashboard.putNumber("Right Stick", joystickRSY);
     }
 }
